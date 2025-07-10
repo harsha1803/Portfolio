@@ -17,8 +17,17 @@ html {
   scroll-behavior: smooth;
 }
 body {
-  background: #f7f7f7;
+  background: #fff;
   font-family: "Poppins", sans-serif;
+}
+
+@keyframes shine-bg {
+  0% {
+    background-position: 100% 0%;
+  }
+  100% {
+    background-position: 0% 100%;
+  }
 }
 
 *::selection {
@@ -346,7 +355,7 @@ header .navbar ul li a:hover {
 
 /* about section starts */
 .about {
-  background: rgb(255, 255, 255);
+  background: #f3f3f3;
 }
 .about .row {
   display: flex;

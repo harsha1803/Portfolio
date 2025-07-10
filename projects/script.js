@@ -30,33 +30,47 @@ document.addEventListener('visibilitychange',
     });
 
 
-// fetch projects start
-function getProjects() {
-    return fetch("projects.json")
-        .then(response => response.json())
-        .then(data => {
-            return data
-        });
+function getProjectImageSrc(repoName) {
+    const exts = ['png', 'jpg', 'jpeg'];
+    for (let ext of exts) {
+        const url = `/assets/images/projects/${repoName}.${ext}`;
+        if (window.projectImageCache && window.projectImageCache[url]) {
+            if (window.projectImageCache[url] === true) return url;
+            continue;
+        }
+        const req = new XMLHttpRequest();
+        req.open('HEAD', url, false);
+        req.send();
+        if (req.status !== 404) {
+            window.projectImageCache = window.projectImageCache || {};
+            window.projectImageCache[url] = true;
+            return url;
+        } else {
+            window.projectImageCache = window.projectImageCache || {};
+            window.projectImageCache[url] = false;
+        }
+    }
+    return '/assets/images/projects/default.png';
 }
 
-
-function showProjects(projects) {
+function showGitHubProjects(repos) {
     let projectsContainer = document.querySelector(".work .box-container");
     let projectsHTML = "";
-    projects.forEach(project => {
+    repos.forEach(repo => {
+        const imageUrl = getProjectImageSrc(repo.name);
         projectsHTML += `
-        <div class="grid-item ${project.category}">
+        <div class="grid-item">
         <div class="box tilt" style="width: 380px; margin: 1rem">
-      <img draggable="false" src="/assets/images/projects/${project.image}.png" alt="project" />
+      <img draggable="false" src="${imageUrl}" alt="project" />
       <div class="content">
         <div class="tag">
-        <h3>${project.name}</h3>
+        <h3>${repo.name}</h3>
         </div>
         <div class="desc">
-          <p>${project.desc}</p>
+          <p>${repo.description ? repo.description : "No description provided."}</p>
           <div class="btns">
-            <a href="${project.links.view}" class="btn" target="_blank"><i class="fas fa-eye"></i> View</a>
-            <a href="${project.links.code}" class="btn" target="_blank">Code <i class="fas fa-code"></i></a>
+            <a href="${repo.html_url}" class="btn" target="_blank"><i class="fas fa-eye"></i> View</a>
+            ${repo.homepage ? `<a href="${repo.homepage}" class="btn" target="_blank">Live <i class="fas fa-external-link-alt"></i></a>` : ""}
           </div>
         </div>
       </div>
@@ -65,24 +79,7 @@ function showProjects(projects) {
     });
     projectsContainer.innerHTML = projectsHTML;
 
-    // vanilla tilt.js
-    // VanillaTilt.init(document.querySelectorAll(".tilt"), {
-    //     max: 20,
-    // });
-    // // vanilla tilt.js  
-
-    // /* ===== SCROLL REVEAL ANIMATION ===== */
-    // const srtop = ScrollReveal({
-    //     origin: 'bottom',
-    //     distance: '80px',
-    //     duration: 1000,
-    //     reset: true
-    // });
-
-    // /* SCROLL PROJECTS */
-    // srtop.reveal('.work .box', { interval: 200 });
-
-    // isotope filter products
+    // Isotope filter products (if you want to keep filtering)
     var $grid = $('.box-container').isotope({
         itemSelector: '.grid-item',
         layoutMode: 'fitRows',
@@ -98,24 +95,24 @@ function showProjects(projects) {
         var filterValue = $(this).attr('data-filter');
         $grid.isotope({ filter: filterValue });
     });
+
+    // VanillaTilt effect
+    if (window.VanillaTilt) {
+        VanillaTilt.init(document.querySelectorAll(".tilt"), { max: 15 });
+    }
 }
 
-getProjects().then(data => {
-    showProjects(data);
-})
-// fetch projects end
+function fetchGitHubProjects() {
+    fetch('https://api.github.com/users/harsha1803/repos?sort=updated')
+        .then(response => response.json())
+        .then(data => {
+            const filtered = data.filter(repo => !repo.fork);
+            showGitHubProjects(filtered);
+        });
+}
 
-// Start of Tawk.to Live Chat
-var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
-(function () {
-    var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
-    s1.async = true;
-    s1.src = 'https://embed.tawk.to/60df10bf7f4b000ac03ab6a8/1f9jlirg6';
-    s1.charset = 'UTF-8';
-    s1.setAttribute('crossorigin', '*');
-    s0.parentNode.insertBefore(s1, s0);
-})();
-// End of Tawk.to Live Chat
+// Fetch and display GitHub projects on page load
+fetchGitHubProjects();
 
 // disable developer mode
 document.onkeydown = function (e) {
