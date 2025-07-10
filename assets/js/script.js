@@ -54,6 +54,8 @@ $(document).ready(function () {
     });
     // <!-- emailjs to mail contact form data -->
 
+    // Load and display all skills from skills.json
+    fetchData("skills").then(showSkills);
 });
 
 document.addEventListener('visibilitychange',
@@ -104,61 +106,99 @@ function showSkills(skills) {
     skillsContainer.innerHTML = skillHTML;
 }
 
-function showProjects(projects) {
-    let projectsContainer = document.querySelector("#work .box-container");
-    let projectHTML = "";
-    projects.slice(0, 10).filter(project => project.category != "android").forEach(project => {
-        projectHTML += `
-        <div class="box tilt">
-      <img draggable="false" src="/assets/images/projects/${project.image}.png" alt="project" />
-      <div class="content">
-        <div class="tag">
-        <h3>${project.name}</h3>
-        </div>
-        <div class="desc">
-          <p>${project.desc}</p>
-          <div class="btns">
-            <a href="${project.links.view}" class="btn" target="_blank"><i class="fas fa-eye"></i> View</a>
-            <a href="${project.links.code}" class="btn" target="_blank">Code <i class="fas fa-code"></i></a>
-          </div>
-        </div>
-      </div>
-    </div>`
-    });
-    projectsContainer.innerHTML = projectHTML;
-
-    // <!-- tilt js effect starts -->
-    VanillaTilt.init(document.querySelectorAll(".tilt"), {
-        max: 15,
-    });
-    // <!-- tilt js effect ends -->
-
-    /* ===== SCROLL REVEAL ANIMATION ===== */
-    const srtop = ScrollReveal({
-        origin: 'top',
-        distance: '80px',
-        duration: 1000,
-        reset: true
-    });
-
-    /* SCROLL PROJECTS */
-    srtop.reveal('.work .box', { interval: 200 });
-
+function imageExists(url, callback) {
+    const img = new Image();
+    img.onload = () => callback(true);
+    img.onerror = () => callback(false);
+    img.src = url;
 }
 
-fetchData().then(data => {
-    showSkills(data);
-});
+function getProjectImageSrc(repoName) {
+    const exts = ['png', 'jpg', 'jpeg'];
+    for (let ext of exts) {
+        const url = `/assets/images/projects/${repoName}.${ext}`;
+        console.log(url);
+        if (window.projectImageCache && window.projectImageCache[url]) {
+            if (window.projectImageCache[url] === true) return url;
+            continue;
+        }
+        const req = new XMLHttpRequest();
+        req.open('HEAD', url, false);
+        req.send();
+        if (req.status !== 404) {
+            window.projectImageCache = window.projectImageCache || {};
+            window.projectImageCache[url] = true;
+            return url;
+        } else {
+            window.projectImageCache = window.projectImageCache || {};
+            window.projectImageCache[url] = false;
+        }
+    }
+    return '/assets/images/projects/default.png';
+}
 
-fetchData("projects").then(data => {
-    showProjects(data);
-});
+function showGitHubProjects(repos) {
+    let projectsContainer = document.querySelector("#work .box-container");
+    let projectHTML = "";
+    repos.forEach(repo => {
+        const imageUrl = getProjectImageSrc(repo.name);
+        projectHTML += `
+        <div class="box tilt">
+            <img class="project-img" src="${imageUrl}" alt="${repo.name}" />
+            <div class="content">
+                <div class="tag">
+                    <h3>${repo.name}</h3>
+                </div>
+                <div class="desc">
+                    <p>${repo.description ? repo.description : "No description provided."}</p>
+                    <div class="btns">
+                        <a href="${repo.html_url}" class="btn" target="_blank"><i class="fas fa-eye"></i> View</a>
+                        ${repo.homepage ? `<a href="${repo.homepage}" class="btn" target="_blank">Live <i class="fas fa-external-link-alt"></i></a>` : ""}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    });
+    projectsContainer.innerHTML = projectHTML;
+    if (window.VanillaTilt) {
+        VanillaTilt.init(document.querySelectorAll(".tilt"), { max: 15 });
+    }
+}
+
+function fetchGitHubProjects() {
+    fetch('https://api.github.com/users/harsha1803/repos?sort=updated')
+        .then(response => response.json())
+        .then(data => {
+            // Optionally filter out forked repos or customize further
+            const filtered = data.filter(repo => !repo.fork);
+            showGitHubProjects(filtered);
+        });
+}
+
+// Replace old fetchData for projects
+fetchGitHubProjects();
 
 // <!-- tilt js effect starts -->
 VanillaTilt.init(document.querySelectorAll(".tilt"), {
     max: 15,
 });
 // <!-- tilt js effect ends -->
+
+// Silver lines animation at the top
+(function() {
+  const linesContainer = document.getElementById('silver-lines');
+  if (!linesContainer) return;
+  const numLines = 12;
+  for (let i = 0; i < numLines; i++) {
+    const line = document.createElement('div');
+    line.className = 'line';
+    line.style.left = `${Math.random() * 100}%`;
+    line.style.width = `${1 + Math.random() * 2}px`;
+    line.style.animationDuration = `${2 + Math.random() * 2}s`;
+    line.style.animationDelay = `${Math.random() * 2}s`;
+    linesContainer.appendChild(line);
+  }
+})();
 
 
 // pre loader start
@@ -189,63 +229,3 @@ document.onkeydown = function (e) {
         return false;
     }
 }
-
-// Start of Tawk.to Live Chat
-var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
-(function () {
-    var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
-    s1.async = true;
-    s1.src = 'https://embed.tawk.to/60df10bf7f4b000ac03ab6a8/1f9jlirg6';
-    s1.charset = 'UTF-8';
-    s1.setAttribute('crossorigin', '*');
-    s0.parentNode.insertBefore(s1, s0);
-})();
-// End of Tawk.to Live Chat
-
-
-/* ===== SCROLL REVEAL ANIMATION ===== */
-const srtop = ScrollReveal({
-    origin: 'top',
-    distance: '80px',
-    duration: 1000,
-    reset: true
-});
-
-/* SCROLL HOME */
-srtop.reveal('.home .content h3', { delay: 200 });
-srtop.reveal('.home .content p', { delay: 200 });
-srtop.reveal('.home .content .btn', { delay: 200 });
-
-srtop.reveal('.home .image', { delay: 400 });
-srtop.reveal('.home .linkedin', { interval: 600 });
-srtop.reveal('.home .github', { interval: 800 });
-srtop.reveal('.home .twitter', { interval: 1000 });
-srtop.reveal('.home .telegram', { interval: 600 });
-srtop.reveal('.home .instagram', { interval: 600 });
-srtop.reveal('.home .dev', { interval: 600 });
-
-/* SCROLL ABOUT */
-srtop.reveal('.about .content h3', { delay: 200 });
-srtop.reveal('.about .content .tag', { delay: 200 });
-srtop.reveal('.about .content p', { delay: 200 });
-srtop.reveal('.about .content .box-container', { delay: 200 });
-srtop.reveal('.about .content .resumebtn', { delay: 200 });
-
-
-/* SCROLL SKILLS */
-srtop.reveal('.skills .container', { interval: 200 });
-srtop.reveal('.skills .container .bar', { delay: 400 });
-
-/* SCROLL EDUCATION */
-srtop.reveal('.education .box', { interval: 200 });
-
-/* SCROLL PROJECTS */
-srtop.reveal('.work .box', { interval: 200 });
-
-/* SCROLL EXPERIENCE */
-srtop.reveal('.experience .timeline', { delay: 400 });
-srtop.reveal('.experience .timeline .container', { interval: 400 });
-
-/* SCROLL CONTACT */
-srtop.reveal('.contact .container', { delay: 400 });
-srtop.reveal('.contact .container .form-group', { delay: 400 });
